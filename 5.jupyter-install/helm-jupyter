@@ -1,0 +1,35 @@
+#!/bin/bash
+#1.add jupyterhub
+helm repo add jupyterhub https://jupyterhub.github.io/helm-chart/
+helm repo update
+
+#2.search jupyterhub version and install
+helm search jupyterhub
+wget wget https://jupyterhub.github.io/helm-chart/jupyterhub-0.9-0bed5d3.tgz
+tar -zxf jupyterhub-0.9-0bed5d3.tgz
+
+#3.This is how to config jupyterhub/value.yaml
+#hub
+#   db:
+#      type:sqlite-memory
+#singleuser:
+#    storage:
+#      type:none
+
+##run openssl rand -hex 32 get token
+##openssl rand -hex 32
+
+#proxy:
+#  secretToken: ee8d49e522d992494d745c3e803307635466bda6c422bd79b717df170b4d7b0b
+#  type: NodePort
+
+##images custome config
+#singleuser:
+#  image:
+#    name: sabor/k8s-sl7-spark
+#    tag: 'v1.13.3_v2.3.4_py2.7'
+#4.jupyterhub port proxy-public 
+kubectl get service --namespace jhub
+
+#5.login jupyterhub
+http://master-ip:jhub-proxy-port/hub/login

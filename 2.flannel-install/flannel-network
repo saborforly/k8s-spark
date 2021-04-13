@@ -1,0 +1,8 @@
+#!/bin/bash
+
+wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+kubectl apply -f  kube-flannel.yml
+
+#depend on network config choose net
+kubectl -n kube-system  edit DaemonSet kube-flannel-ds-amd64
+#config - --iface=enp0s8

@@ -1,0 +1,7 @@
+1. setup kebernetes on master and node
+2. setup Network plugin -- flannel
+3. setup kubectl Web-UI
+4. setup helm
+5. check and pull jupyter docker image
+6. setup jupyter
+7. login jupyter-web

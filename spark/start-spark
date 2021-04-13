@@ -1,0 +1,103 @@
+#!/bin/bash
+
+
+cd
+if [ ! -d ".spark" ]; then
+  mkdir .spark
+fi
+cd .spark
+
+var=$(hostname)
+sudo chmod -R 777 /etc/hosts
+
+#change spark conf
+echo "spark.master spark://spark-$var:7077
+spark.executor.extraClassPath /opt/spark/lib/gcs-connector-latest-hadoop2.jar
+spark.driver.extraClassPath   /opt/spark/lib/gcs-connector-latest-hadoop2.jar
+spark.driver.extraLibraryPath /opt/hadoop/lib/native
+spark.app.id KubernetesSpark
+spark.jars.packages org.diana-hep:spark-root_2.11:0.1.15
+">&/opt/spark/conf/spark-defaults.conf
+
+#start master
+/start-master spark-$var > run_master.log 2>&1 &
+
+#start headless-service
+echo "kind: Service
+apiVersion: v1
+metadata:
+  name: $var
+spec:
+  clusterIP: None
+  ports:
+    - port: 7077
+      targetPort: 7077
+      name: spark
+    - port: 8080
+      targetPort: 8080
+      name: http
+  selector:
+    spark-user: $var
+">&spark-master-headless.yaml
+kubectl apply -f spark-master-headless.yaml -n jhub
+
+#start spark-master-service
+echo "kind: Service
+apiVersion: v1
+metadata:
+  name: spark-$var
+spec:
+  ports:
+    - port: 7077
+      targetPort: 7077
+      name: spark
+    - port: 8080
+      targetPort: 8080
+      name: http
+  selector:
+    spark-user: $var
+">&spark-master-service.yaml
+kubectl apply -f spark-master-service.yaml -n jhub
+
+#start spark-work
+echo "kind: ReplicationController
+apiVersion: v1
+metadata:
+  name: worker-$var
+spec:
+  replicas: $1
+  selector:
+    component: spark-worker
+  template:
+    metadata:
+      labels:
+        component: spark-worker
+    spec:
+      volumes:
+        - name: home-dir
+          hostPath:
+            path: /home
+            type: Directory
+        - name: tmp-dir
+          hostPath:
+            path: /tmp
+            type: Directory
+      containers:
+        - name: spark-worker
+          image: sabor/spark:2.3.4-1
+          volumeMounts:
+            - name: home-dir
+              mountPath: /home/jovyan/home
+            - name: tmp-dir
+              mountPath: /tmp
+          command: ["/start-worker"]
+          args: ["spark-$var"]
+          ports:
+            - containerPort: 8081
+          resources:
+            requests:
+              cpu: "0.5"
+              memory: "512Mi"
+
+">&spark-work.yaml
+kubectl apply -f spark-work.yaml -n jhub

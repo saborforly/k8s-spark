@@ -1,0 +1,42 @@
+#!/bin/bash
+#1.get helm
+mkdir helm
+wget https://storage.googleapis.com/kubernetes-helm/helm-v2.12.0-linux-amd64.tar.gz
+tar -zxvf helm-v2.12.0-linux-amd64.tar.gz
+cd linux-amd64/
+cp helm /usr/local/bin/
+
+#2.creat ClusterRole for tiller
+echo "vim rbac-config.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tiller
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: tiller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: tiller
+    namespace: kube-system">&  rbac-config.yaml 
+kubectl create -f rbac-config.yaml
+
+#3.config tiller
+helm init --service-account tiller --skip-refresh
+
+#if helm run well
+kubectl get pod -n kube-system -l app=helm
+
+#if client and server is right
+helm version
+
+#config tiller config file
+kubectl edit deploy tiller-deploy -n kube-system
+

@@ -1,0 +1,6 @@
+cd
+cd .spark
+ps -ef|grep /start-master|grep -v grep|awk '{print $2}'|xargs kill -9
+kubectl delete -f spark-master-headless.yaml -n jhub
+kubectl delete -f spark-master-service.yaml -n jhub
+kubectl delete -f spark-work.yaml -n jhub

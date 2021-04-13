@@ -1,0 +1,42 @@
+#1.add k8s source
+cat <<EOF > /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=http://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=0
+repo_gpgcheck=0
+gpgkey=http://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg
+       http://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
+EOF
+yum makecache fast
+
+#2.install k8s
+yum install -y kubelet-1.13.3 kubernetes-cni-0.6.0  kubeadm-1.13.3 kubectl-1.13.3
+kubelet --version
+systemctl enable kubelet.service
+
+#3.install docker
+yum install -y yum-utils device-mapper-persistent-data lvm2
+yum-config-manager \
+    --add-repo \
+    https://download.docker.com/linux/centos/docker-ce.repo
+yum makecache fast
+yum remove container-selinux
+yum remove docker-*
+yum install -y --setopt=obsoletes=0   docker-ce-17.03.0.ce-1.el7.centos
+systemctl start docker
+systemctl enable docker
+
+#4.install k8s images
+echo "#!/bin/bash
+images=(kube-proxy:v1.13.3 kube-scheduler:v1.13.3 kube-controller-manager:v1.13.3
+kube-apiserver:v1.13.3 etcd:3.2.24 coredns:1.2.6 pause:3.1)
+for imageName in ${images[@]} ; do
+docker pull registry.cn-hangzhou.aliyuncs.com/google_containers/$imageName
+docker tag  registry.cn-hangzhou.aliyuncs.com/google_containers/$imageName k8s.gcr.io/$imageName
+docker rmi  registry.cn-hangzhou.aliyuncs.com/google_containers/$imageName
+done" >& docker_images.sh
+source docker_images.sh
+
+

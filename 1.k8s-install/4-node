@@ -1,0 +1,8 @@
+#!/bin/bash
+
+#get master token
+kubeadm token create --print-join-command
+
+#master kubectl token
+#192.168.0.8:6443  master-ip
+kubeadm join master-ip:port --token xx --discovery-token-ca-cert-hash xx-token
